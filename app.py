@@ -9,7 +9,7 @@ register_heif_opener()
 # ==========================================
 # 1. A CHAVE DO IMPÉRIO E CONFIGURAÇÃO
 # ==========================================
-GOOGLE_API_KEY = "AIzaSyAKscFDkqkHTCqF1ssvFxyXk03GLFpT4jc" 
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
 st.set_page_config(page_title="Corretor IA de Redações", layout="wide")
