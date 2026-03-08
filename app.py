@@ -35,46 +35,47 @@ if "notas" not in st.session_state:
 # 2. FUNÇÕES TÁTICAS (PDF E IA)
 # ==========================================
 def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
-    # Usando FPDF padrão para evitar conflitos de bytes
     pdf = FPDF()
     pdf.add_page()
     
-    # Removendo acentos do título para compatibilidade total
-    pdf.set_font("Arial", "B", 16)
+    pdf.set_font("Helvetica", "B", 16)
     pdf.cell(190, 10, "Relatorio de Avaliacao de Redacao", ln=True, align="C")
     pdf.ln(5)
     
-    pdf.set_font("Arial", "", 12)
+    pdf.set_font("Helvetica", "", 12)
     pdf.cell(190, 10, f"Aluno(a): {nome}", ln=True)
     pdf.cell(190, 10, f"Tema: {tema}", ln=True)
     pdf.cell(190, 10, f"Data: {datetime.date.today().strftime('%d/%m/%Y')}", ln=True)
     pdf.ln(5)
     
-    pdf.set_font("Arial", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.cell(190, 10, "Desempenho por Competencia:", ln=True)
-    pdf.set_font("Arial", "", 11)
+    pdf.set_font("Helvetica", "", 11)
     for k, v in notas.items():
         pdf.cell(190, 8, f"{k.upper()}: {v} pontos", ln=True)
     
     pdf.ln(5)
-    pdf.set_font("Arial", "B", 14)
+    pdf.set_font("Helvetica", "B", 14)
     pdf.cell(190, 10, f"NOTA TOTAL: {total}", ln=True)
     pdf.ln(5)
     
-    pdf.set_font("Arial", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.cell(190, 10, "Justificativa da Correcao:", ln=True)
-    pdf.set_font("Arial", "", 10)
-    # multi_cell lida melhor com textos longos
-    pdf.multi_cell(190, 7, justificativa.encode('latin-1', 'replace').decode('latin-1'))
+    pdf.set_font("Helvetica", "", 10)
+    
+    just_limpa = justificativa.encode('latin-1', 'replace').decode('latin-1')
+    pdf.multi_cell(190, 7, just_limpa)
     
     pdf.ln(5)
-    pdf.set_font("Arial", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.cell(190, 10, "Texto Transcrito:", ln=True)
-    pdf.set_font("Arial", "I", 9)
-    pdf.multi_cell(190, 5, texto_original.encode('latin-1', 'replace').decode('latin-1'))
+    pdf.set_font("Helvetica", "I", 9)
     
-    # AQUI ESTAVA O ERRO: Convertendo para bytes explicitamente
-    return pdf.output(dest='S').encode('latin-1', 'replace')
+    text_limpo = texto_original.encode('latin-1', 'replace').decode('latin-1')
+    pdf.multi_cell(190, 5, text_limpo)
+    
+    # A SOLUÇÃO DEFINITIVA: O fpdf2 já entrega os bytes direitinho
+    return bytes(pdf.output())
 
 def ler_redacao(imagem):
     prompt = "Transcreva o manuscrito. Se houver recuo de paragrafo, escreva [PARAGRAFO]."
@@ -150,7 +151,7 @@ with col2:
         try:
             pdf_data = gerar_pdf(st.session_state.nome_aluno, tem, st.session_state.notas, total, st.session_state.justificativa, st.session_state.texto_aluno)
             st.download_button(
-                label="📩 BAIXAR RELATORIO (PDF)",
+                label="📩 BAIXAR RELATÓRIO (PDF)",
                 data=pdf_data,
                 file_name=f"Avaliacao_{st.session_state.nome_aluno}.pdf",
                 mime="application/pdf",
