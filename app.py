@@ -11,7 +11,6 @@ register_heif_opener()
 # ==========================================
 # 1. CONFIGURAÇÃO E SEGURANÇA
 # ==========================================
-# Título que aparecerá no celular do professor ao instalar
 st.set_page_config(page_title="Corretor de Redação CEM 04", page_icon="📝", layout="wide")
 
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
@@ -27,7 +26,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Inicialização de estados
 for key in ["texto_aluno", "mapa_calor", "justificativa", "nome_aluno"]:
     if key not in st.session_state: st.session_state[key] = ""
 if "notas" not in st.session_state:
@@ -40,7 +38,7 @@ def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(190, 10, "Relatório de Avaliação de Redação", ln=True, align="C")
+    pdf.cell(190, 10, "Relatorio de Avaliacao de Redacao", ln=True, align="C")
     pdf.ln(5)
     
     pdf.set_font("Arial", "", 12)
@@ -50,7 +48,7 @@ def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
     pdf.ln(5)
     
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(190, 10, "Desempenho por Competência:", ln=True)
+    pdf.cell(190, 10, "Desempenho por Competencia:", ln=True)
     pdf.set_font("Arial", "", 11)
     for k, v in notas.items():
         pdf.cell(190, 8, f"{k.upper()}: {v} pontos", ln=True)
@@ -60,7 +58,7 @@ def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
     pdf.ln(5)
     
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(190, 10, "Justificativa da Correção:", ln=True)
+    pdf.cell(190, 10, "Justificativa da Correcao:", ln=True)
     pdf.set_font("Arial", "", 10)
     pdf.multi_cell(190, 7, justificativa)
     
@@ -73,43 +71,35 @@ def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
     return pdf.output(dest='S')
 
 def ler_redacao(imagem):
-    prompt = "Transcreva o manuscrito mantendo a numeração das linhas (ex: 1 - Texto). Se houver recuo de parágrafo visível, escreva [PARÁGRAFO] antes."
+    prompt = "Transcreva o manuscrito mantendo a numeracao das linhas. Se houver recuo de paragrafo visivel, escreva [PARAGRAFO] antes."
     try:
         response = client.models.generate_content(model='gemini-2.5-pro', contents=[imagem, prompt])
-        return response.text.strip()
-    except Exception as e: return f"Erro: {str(e)}"
-
-def analisar_autenticidade(texto):
-    prompt = f"Analise se este texto foi escrito por IA. Texto: {texto}. Retorne Termômetro e Indícios."
-    try:
-        response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
         return response.text.strip()
     except Exception as e: return f"Erro: {str(e)}"
 
 def recalcular_ia(texto, tema, genero, modelo):
     if modelo == "Padrão ENEM":
         prompt = (
-            "Você é um corretor ENEM. Retorne APENAS JSON.\n"
+            "Voce e um corretor ENEM. Retorne APENAS JSON.\n"
             f"Texto: {texto} | Tema: {tema} | Gênero: {genero}\n"
-            "Regras: Notas 0, 40, 80, 120, 160, 200. Penalize falta de [PARÁGRAFO] na C2.\n"
+            "Regras: Notas 0, 40, 80, 120, 160, 200. Penalize falta de [PARAGRAFO] na C2.\n"
             "Use HTML <span style='background-color: #fce4e4; color: black;'>erro<sup>C1</sup></span> para marcar erros.\n"
-            "SEGURANÇA JSON: Use aspas simples (') dentro dos textos. NUNCA aspas duplas.\n"
+            "SEGURANCA JSON: Use aspas simples (') dentro dos textos. NUNCA aspas duplas.\n"
             'JSON ESPERADO: {"texto_avaliado": "...", "c1": 0, "c2": 0, "c3": 0, "c4": 0, "c5": 0, "justificativa": "..."}'
         )
     else:
         prompt = (
-            "Você é um corretor de Redação Básica. Retorne APENAS JSON.\n"
+            "Voce e um corretor de Redacao Basica. Retorne APENAS JSON.\n"
             f"Texto: {texto} | Tema: {tema} | Gênero: {genero}\n"
             "Regras: C1(50-200), C2(50-200), C3(50-200), C4(100-200), C5(0-200).\n"
             "Use HTML <span style='background-color: #fce4e4; color: black;'>erro<sup>C1</sup></span> para marcar erros.\n"
-            "SEGURANÇA JSON: Use aspas simples (') dentro dos textos.\n"
+            "SEGURANCA JSON: Use aspas simples (') dentro dos textos.\n"
             'JSON ESPERADO: {"texto_avaliado": "...", "c1": 0, "c2": 0, "c3": 0, "c4": 0, "c5": 0, "justificativa": "..."}'
         )
-
     try:
         response = client.models.generate_content(model='gemini-2.5-pro', contents=prompt, config={'response_mime_type': 'application/json'})
         return json.loads(response.text)
-    except Exception as e: return {"erro": f"Erro técnico: {str(e)}"}
+    except Exception as e: return {"erro": f"Erro tecnico: {str(e)}"}
 
 # ==========================================
 # 3. INTERFACE DE COMANDO
@@ -122,7 +112,7 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("1. Digitalização e Configuração")
     st.session_state.nome_aluno = st.text_input("Nome do Aluno:", value=st.session_state.nome_aluno)
-    imagem_upload = st.file_uploader("Foto da Redação", type=["png", "jpg", "jpeg", "heic", "heif"])
+    imagem_upload = st.file_uploader("Foto da Redacao", type=["png", "jpg", "jpeg", "heic", "heif"])
     
     if st.button("LER TEXTO", use_container_width=True):
         if imagem_upload:
@@ -161,7 +151,6 @@ with col2:
         st.markdown(f"## **TOTAL: {total}**")
         st.session_state.justificativa = st.text_area("Justificativa Final:", value=st.session_state.justificativa, height=150)
 
-        # BOTÃO DO PDF SAGAZ
         pdf_bytes = gerar_pdf(st.session_state.nome_aluno, tema_texto, st.session_state.notas, total, st.session_state.justificativa, st.session_state.texto_aluno)
         st.download_button(
             label="📩 BAIXAR NOTA E JUSTIFICATIVA (PDF)",
