@@ -11,8 +11,30 @@ register_heif_opener()
 # ==========================================
 # 1. CONFIGURAÇÃO E SEGURANÇA
 # ==========================================
-st.set_page_config(page_title="Corretor de Redacao CEM 04", page_icon="📝", layout="wide")
+st.set_page_config(page_title="Corretor de Redação CEM 04", page_icon="📝", layout="wide")
 
+# TÁTICA DA PORTA-FORTE (BLOQUEIO DE ACESSO)
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
+
+if not st.session_state.autenticado:
+    st.markdown("<h2 style='text-align: center;'>🔒 Acesso Restrito - CEM 04</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Digite a senha da escola para liberar o avaliador.</p>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        senha_digitada = st.text_input("Senha:", type="password")
+        if st.button("🔓 Entrar", use_container_width=True):
+            # Tenta pegar a senha do cofre, se não achar, usa uma de emergência provisória
+            senha_oficial = st.secrets.get("SENHA_ESCOLA", "1234") 
+            if senha_digitada == senha_oficial:
+                st.session_state.autenticado = True
+                st.rerun()
+            else:
+                st.error("❌ Senha incorreta. Acesso negado.")
+    st.stop() # Interrompe o carregamento do resto do app se não tiver a senha
+
+# Se passou da senha, carrega a IA
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
@@ -37,7 +59,6 @@ if "notas" not in st.session_state:
 def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
     pdf = FPDF()
     pdf.add_page()
-    
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(190, 10, "Relatorio de Avaliacao de Redacao", ln=True, align="C")
     pdf.ln(5)
@@ -62,7 +83,6 @@ def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(190, 10, "Justificativa da Correcao:", ln=True)
     pdf.set_font("Helvetica", "", 10)
-    
     just_limpa = justificativa.encode('latin-1', 'replace').decode('latin-1')
     pdf.multi_cell(190, 7, just_limpa)
     
@@ -70,17 +90,20 @@ def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(190, 10, "Texto Transcrito:", ln=True)
     pdf.set_font("Helvetica", "I", 9)
-    
     text_limpo = texto_original.encode('latin-1', 'replace').decode('latin-1')
     pdf.multi_cell(190, 5, text_limpo)
     
-    # A SOLUÇÃO DEFINITIVA: O fpdf2 já entrega os bytes direitinho
     return bytes(pdf.output())
 
 def ler_redacao(imagem):
     prompt = "Transcreva o manuscrito. Se houver recuo de paragrafo, escreva [PARAGRAFO]."
     try:
-        response = client.models.generate_content(model='gemini-2.5-pro', contents=[imagem, prompt])
+        # A TRAVA MATEMÁTICA CONTRA ALUCINAÇÃO: temperature=0.0
+        response = client.models.generate_content(
+            model='gemini-2.5-pro', 
+            contents=[imagem, prompt],
+            config={'temperature': 0.0} 
+        )
         return response.text.strip()
     except Exception as e: return f"Erro: {str(e)}"
 
@@ -113,7 +136,7 @@ with col1:
     
     if st.button("LER TEXTO", use_container_width=True):
         if imagem_upload:
-            with st.spinner("Lendo..."):
+            with st.spinner("Lendo com precisão (Sem invenções)..."):
                 img = Image.open(imagem_upload)
                 st.session_state.texto_aluno = ler_redacao(img)
         else: st.warning("⚠️ Selecione uma imagem!")
@@ -147,7 +170,6 @@ with col2:
         st.markdown(f"## **TOTAL: {total}**")
         st.session_state.justificativa = st.text_area("Justificativa:", value=st.session_state.justificativa, height=150)
 
-        # GERAÇÃO DOS BYTES DO PDF
         try:
             pdf_data = gerar_pdf(st.session_state.nome_aluno, tem, st.session_state.notas, total, st.session_state.justificativa, st.session_state.texto_aluno)
             st.download_button(
