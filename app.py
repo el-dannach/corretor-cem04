@@ -25,14 +25,13 @@ if not st.session_state.autenticado:
     with col2:
         senha_digitada = st.text_input("Senha:", type="password")
         if st.button("🔓 Entrar", use_container_width=True):
-            # Tenta pegar a senha do cofre, se não achar, usa uma de emergência provisória
             senha_oficial = st.secrets.get("SENHA_ESCOLA", "1234") 
             if senha_digitada == senha_oficial:
                 st.session_state.autenticado = True
                 st.rerun()
             else:
                 st.error("❌ Senha incorreta. Acesso negado.")
-    st.stop() # Interrompe o carregamento do resto do app se não tiver a senha
+    st.stop()
 
 # Se passou da senha, carrega a IA
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
@@ -98,11 +97,10 @@ def gerar_pdf(nome, tema, notas, total, justificativa, texto_original):
 def ler_redacao(imagem):
     prompt = "Transcreva o manuscrito. Se houver recuo de paragrafo, escreva [PARAGRAFO]."
     try:
-        # A TRAVA MATEMÁTICA CONTRA ALUCINAÇÃO: temperature=0.0
+        # ROLLBACK: Removida a trava de temperature=0.0 para restaurar a fluidez da leitura
         response = client.models.generate_content(
             model='gemini-2.5-pro', 
-            contents=[imagem, prompt],
-            config={'temperature': 0.0} 
+            contents=[imagem, prompt]
         )
         return response.text.strip()
     except Exception as e: return f"Erro: {str(e)}"
@@ -136,7 +134,8 @@ with col1:
     
     if st.button("LER TEXTO", use_container_width=True):
         if imagem_upload:
-            with st.spinner("Lendo com precisão (Sem invenções)..."):
+            # INTERFACE LIMPA: Removida a frase "Sem invenções"
+            with st.spinner("Lendo manuscrito..."):
                 img = Image.open(imagem_upload)
                 st.session_state.texto_aluno = ler_redacao(img)
         else: st.warning("⚠️ Selecione uma imagem!")
